@@ -174,6 +174,7 @@ if __name__ == '__main__':
                             B = B.cuda()
 
                         # Forward
+                        # TODO: encoders and decoders return result AND features, changes needed in code
                         z_A = modules_dict[ENC_A](A)
                         A_rec = modules_dict[DEC_A](z_A)
                         AB = modules_dict[DEC_B](z_A)
@@ -257,6 +258,7 @@ if __name__ == '__main__':
                 B = B.cuda()
 
             # Forward
+            #TODO: encoders and decoders return result AND features, changes needed in code
             z_A = modules_dict[ENC_A](A)
             A_rec = modules_dict[DEC_A](z_A)
             AB = modules_dict[DEC_B](z_A)
@@ -313,6 +315,7 @@ if __name__ == '__main__':
             else:
                 generator_optimizer.zero_grad()
                 # TODO: implement feature matching loss
+                # TODO: implement and test curriculum learning
                 (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] +
                  loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] +
                  (loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]) * args.gan_loss_ratio).backward()
