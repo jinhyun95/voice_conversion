@@ -39,7 +39,7 @@ parser.add_argument('--save_result', type=str2bool, default=True)
 parser.add_argument('--model_name', type=str, default='unsupervised_vc')
 parser.add_argument('--restore_step', type=int, help='Global step to restore checkpoint', default=0)
 
-
+# TODO: implement feature matching loss
 def discriminator_loss(d_real, d_fake):
     d_loss = 0.5 * (torch.mean((d_real - 1) ** 2) + torch.mean(d_fake ** 2))
     g_loss = 0.5 * torch.mean((d_fake - 1) ** 2)
@@ -125,6 +125,7 @@ if __name__ == '__main__':
     discriminator_scheduler = lr_scheduler.StepLR(discriminator_optimizer, step_size=args.decay_step, gamma=args.decay_rate)
 
     # Loss for frequency of human register
+    # TODO: ablation test needed
     n_priority_freq = int(3000 / (args.sr * 0.5) * args.num_freq)
 
     for epoch in range(args.epochs):
@@ -153,6 +154,7 @@ if __name__ == '__main__':
                     eval_data_loader_B = DataLoader(dataset_B, batch_size=args.batch_size, shuffle=False,
                                                     drop_last=False, collate_fn=collate_fn_audio, num_workers=8)
 
+                    # TODO: ablation test needed for recon_loss and fm_loss
                     curr_loss_dict = {key: 0. for key in [RECON_LOSS_A, RECON_LOSS_B,
                                                           CYCLE_LOSS_A, CYCLE_LOSS_B,
                                                           FM_LOSS_A, FM_LOSS_B,
@@ -184,6 +186,7 @@ if __name__ == '__main__':
                         z_BA = modules_dict[ENC_A](BA)
                         BAB = modules_dict[DEC_B](z_BA)
 
+                        # TODO: use reconstructed spectrograms(A_rec, B_rec, ABA, BAB) while training DISC, GAN loss?
                         disc_A = modules_dict[DISC_A](A)
                         disc_AB = modules_dict[DISC_B](AB)
                         # disc_A_rec = modules_dict[DISC_A](A_rec)
@@ -195,6 +198,7 @@ if __name__ == '__main__':
                         # disc_BAB = modules_dict[DISC_B](BAB)
 
                         # calculate loss
+                        # TODO: implement feature matching loss
                         curr_loss_dict[RECON_LOSS_A] += spec_loss(A_rec, A, n_priority_freq, args.cuda).data[0]
                         curr_loss_dict[RECON_LOSS_B] += spec_loss(B_rec, B, n_priority_freq, args.cuda).data[0]
                         curr_loss_dict[CYCLE_LOSS_A] += spec_loss(ABA, A, n_priority_freq, args.cuda).data[0]
@@ -265,6 +269,7 @@ if __name__ == '__main__':
             z_BA = modules_dict[ENC_A](BA)
             BAB = modules_dict[DEC_B](z_BA)
 
+            # TODO: use reconstructed spectrograms(A_rec, B_rec, ABA, BAB) while training DISC, GAN loss?
             disc_A = modules_dict[DISC_A](A)
             disc_AB = modules_dict[DISC_B](AB)
             # disc_A_rec = modules_dict[DISC_A](A_rec)
@@ -275,6 +280,7 @@ if __name__ == '__main__':
             # disc_B_rec = modules_dict[DISC_B](B_rec)
             # disc_BAB = modules_dict[DISC_B](BAB)
 
+            # TODO: implement feature matching loss
             loss_dict[RECON_LOSS_A] = spec_loss(A_rec, A, n_priority_freq, args.cuda)
             loss_dict[RECON_LOSS_B] = spec_loss(B_rec, B, n_priority_freq, args.cuda)
             loss_dict[CYCLE_LOSS_A] = spec_loss(ABA, A, n_priority_freq, args.cuda)
@@ -306,6 +312,7 @@ if __name__ == '__main__':
 
             else:
                 generator_optimizer.zero_grad()
+                # TODO: implement feature matching loss
                 (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] +
                  loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] +
                  (loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]) * args.gan_loss_ratio).backward()
@@ -322,6 +329,7 @@ if __name__ == '__main__':
             if current_step % 10:
                 step_logs = '\t[TRAINING LOG]\n'
                 step_logs += '\tStep: %d\n' % current_step
+                # TODO: implement feature matching loss
                 for loss in [RECON_LOSS_A, RECON_LOSS_B, CYCLE_LOSS_A, CYCLE_LOSS_B,
                              GAN_LOSS_A, GAN_LOSS_B, DISC_LOSS_A, DISC_LOSS_B]:
                     step_logs += '\t%s loss: %.5f\n' % (loss, loss_dict[loss])
