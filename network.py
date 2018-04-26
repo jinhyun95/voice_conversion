@@ -110,3 +110,8 @@ class Discriminator(nn.Module):
 
     def forward(self, spec):
         return self.network(spec)
+
+# TODO: make branch for style discriminator test after debugging entire code
+# TODO: implement style discriminator introduced in Voice-GAN, ICASSP 2018
+# TODO: change training.py accordingly
+# TODO: perform ablation test for style discriminator
