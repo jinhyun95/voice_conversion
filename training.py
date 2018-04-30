@@ -5,6 +5,7 @@ from itertools import chain
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
+from torch.autograd import Variable
 
 from data import *
 from etc import *
@@ -32,8 +33,8 @@ parser.add_argument('--disc_step', type=int, default=3)
 parser.add_argument('--gan_loss_ratio', type=float, default=1.)
 
 # loss arguments
-parser.add_argument('feature_recon_loss', type=str2bool, help='bottleneck feature reconstruction loss', default=True)
-parser.add_argument('feature_matching_loss', type=str2bool, help='feature matching loss', default=False)
+parser.add_argument('--feature_recon_loss', type=str2bool, help='bottleneck feature reconstruction loss', default=True)
+parser.add_argument('--feature_matching_loss', type=str2bool, help='feature matching loss', default=False)
 
 # etc
 parser.add_argument('--cuda', type=str2bool, help='whether to use cuda(GPU)', default=True)
@@ -68,7 +69,7 @@ def feature_reconstruction_loss(f_synth, f_source, cuda=True):
 
 
 def feature_matching_loss(f_synth, f_recon, cuda=True):
-    l1loss = torch.FloatTensor(1).zero_()
+    l1loss = Variable(torch.FloatTensor(1).zero_())
     for f1, f2 in zip(f_synth, f_recon):
         l1loss += torch.mean(torch.abs(f1 - f2))
     if cuda:
@@ -188,8 +189,8 @@ if __name__ == '__main__':
                             break
 
                         # get next batch from dataloader
-                        A = next(iter(eval_data_loader_A))
-                        B = next(iter(eval_data_loader_B))
+                        A = Variable(next(iter(eval_data_loader_A)))
+                        B = Variable(next(iter(eval_data_loader_B)))
                         if args.cuda:
                             A = A.cuda()
                             B = B.cuda()
@@ -274,8 +275,8 @@ if __name__ == '__main__':
             loss_dict = {}
 
             # get next batch from dataloader
-            A = next(iter(wave_loader_A))
-            B = next(iter(wave_loader_A))
+            A = Variable(next(iter(wave_loader_A)))
+            B = Variable(next(iter(wave_loader_A)))
             if args.cuda:
                 A = A.cuda()
                 B = B.cuda()
