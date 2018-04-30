@@ -70,10 +70,10 @@ def feature_reconstruction_loss(f_synth, f_source, cuda=True):
 
 def feature_matching_loss(f_synth, f_recon, cuda=True):
     l1loss = Variable(torch.FloatTensor(1).zero_())
-    for f1, f2 in zip(f_synth, f_recon):
-        l1loss += torch.mean(torch.abs(f1 - f2))
     if cuda:
         l1loss = l1loss.cuda()
+    for f1, f2 in zip(f_synth, f_recon):
+        l1loss += torch.mean(torch.abs(f1 - f2))
     return l1loss
 
 
