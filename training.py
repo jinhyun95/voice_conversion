@@ -194,6 +194,8 @@ if __name__ == '__main__':
                         if args.cuda:
                             A = A.cuda()
                             B = B.cuda()
+                        A = A.unsqueeze(1)
+                        B = B.unsqueeze(1)
 
                         # Forward
                         z_A, f_enc_A = modules_dict[ENC_A](A)
@@ -280,6 +282,8 @@ if __name__ == '__main__':
             if args.cuda:
                 A = A.cuda()
                 B = B.cuda()
+            A = A.unsqueeze(1)
+            B = B.unsqueeze(1)
 
             # Forward
             z_A, f_enc_A = modules_dict[ENC_A](A)
