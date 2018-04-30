@@ -180,6 +180,7 @@ if __name__ == '__main__':
                     curr_loss_dict = {key: 0. for key in [RECON_LOSS_A, RECON_LOSS_B,
                                                           CYCLE_LOSS_A, CYCLE_LOSS_B,
                                                           FM_LOSS_A, FM_LOSS_B,
+                                                          FR_LOSS_A, FR_LOSS_B,
                                                           GAN_LOSS_A, GAN_LOSS_B,
                                                           DISC_LOSS_A, DISC_LOSS_B]}
 
@@ -331,20 +332,8 @@ if __name__ == '__main__':
                 discriminator_optimizer.step()
                 discriminator_scheduler.step()
 
-            if current_step % args.disc_step == 0:
-                discriminator_optimizer.zero_grad()
-                (loss_dict[DISC_LOSS_A] + loss_dict[DISC_LOSS_B]).backward()
-
-                # gradient clipping
-                for key in modules_dict.keys():
-                    nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
-
-                discriminator_optimizer.step()
-                discriminator_scheduler.step()
-
             else:
                 generator_optimizer.zero_grad()
-                # TODO: implement feature matching loss
                 # TODO: implement and test curriculum learning
                 gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
                            loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] + \
