@@ -352,7 +352,7 @@ if __name__ == '__main__':
 
             time_per_step = time.time() - start_time
 
-            if current_step % 10:
+            if current_step % 10 == 0:
                 step_logs = '\t[TRAINING LOG]\n'
                 step_logs += '\tStep: %d\n' % current_step
                 for loss in [RECON_LOSS_A, RECON_LOSS_B, CYCLE_LOSS_A, CYCLE_LOSS_B,
