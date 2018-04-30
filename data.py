@@ -29,7 +29,7 @@ class AudioDataset(Dataset):
 
 def collate_fn_audio(batch):
     len_lists = [len(elt) for elt in batch]
-    max_lens = max(len_lists)
+    max_lens = (max(len_lists) // 64 + 1) * 64
     padded = []
     for d in batch:
         org_shape = list(d.shape[:])

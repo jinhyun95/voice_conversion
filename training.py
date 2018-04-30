@@ -31,6 +31,10 @@ parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--disc_step', type=int, default=3)
 parser.add_argument('--gan_loss_ratio', type=float, default=1.)
 
+# loss arguments
+parser.add_argument('feature_recon_loss', type=str2bool, help='bottleneck feature reconstruction loss', default=True)
+parser.add_argument('feature_matching_loss', type=str2bool, help='feature matching loss', default=False)
+
 # etc
 parser.add_argument('--cuda', type=str2bool, help='whether to use cuda(GPU)', default=True)
 parser.add_argument('--save_step', type=int, help='steps btw model and image', default=5000)
@@ -38,6 +42,7 @@ parser.add_argument('--save_result', type=str2bool, default=True)
 
 parser.add_argument('--model_name', type=str, default='unsupervised_vc')
 parser.add_argument('--restore_step', type=int, help='Global step to restore checkpoint', default=0)
+
 
 # TODO: implement feature matching loss
 def discriminator_loss(d_real, d_fake):
@@ -53,6 +58,22 @@ def spec_loss(s_synth, s_target, priority_freq, cuda=True):
     if cuda:
         l1loss_with_priority = l1loss_with_priority.cuda()
     return l1loss_with_priority
+
+
+def feature_reconstruction_loss(f_synth, f_source, cuda=True):
+    l1loss = torch.mean(torch.abs(f_synth - f_source))
+    if cuda:
+        l1loss = l1loss.cuda()
+    return l1loss
+
+
+def feature_matching_loss(f_synth, f_recon, cuda=True):
+    l1loss = torch.FloatTensor(1).zero_()
+    for f1, f2 in zip(f_synth, f_recon):
+        l1loss += torch.mean(torch.abs(f1 - f2))
+    if cuda:
+        l1loss = l1loss.cuda()
+    return l1loss
 
 
 if __name__ == '__main__':
@@ -174,18 +195,17 @@ if __name__ == '__main__':
                             B = B.cuda()
 
                         # Forward
-                        # TODO: encoders and decoders return result AND features, changes needed in code
-                        z_A = modules_dict[ENC_A](A)
-                        A_rec = modules_dict[DEC_A](z_A)
-                        AB = modules_dict[DEC_B](z_A)
-                        z_AB = modules_dict[ENC_B](AB)
-                        ABA = modules_dict[DEC_A](z_AB)
+                        z_A, f_enc_A = modules_dict[ENC_A](A)
+                        A_rec, f_dec_A_rec = modules_dict[DEC_A](z_A)
+                        AB, f_dec_AB = modules_dict[DEC_B](z_A)
+                        z_AB, f_enc_AB = modules_dict[ENC_B](AB)
+                        ABA, f_dec_ABA = modules_dict[DEC_A](z_AB)
 
-                        z_B = modules_dict[ENC_B](B)
-                        B_rec = modules_dict[DEC_B](z_B)
-                        BA = modules_dict[DEC_A](z_B)
-                        z_BA = modules_dict[ENC_A](BA)
-                        BAB = modules_dict[DEC_B](z_BA)
+                        z_B, f_enc_B = modules_dict[ENC_B](B)
+                        B_rec, f_dec_B_rec = modules_dict[DEC_B](z_B)
+                        BA, f_dec_BA = modules_dict[DEC_A](z_B)
+                        z_BA, f_enc_BA = modules_dict[ENC_A](BA)
+                        BAB, f_dec_BAB = modules_dict[DEC_B](z_BA)
 
                         # TODO: use reconstructed spectrograms(A_rec, B_rec, ABA, BAB) while training DISC, GAN loss?
                         disc_A = modules_dict[DISC_A](A)
@@ -199,11 +219,14 @@ if __name__ == '__main__':
                         # disc_BAB = modules_dict[DISC_B](BAB)
 
                         # calculate loss
-                        # TODO: implement feature matching loss
                         curr_loss_dict[RECON_LOSS_A] += spec_loss(A_rec, A, n_priority_freq, args.cuda).data[0]
                         curr_loss_dict[RECON_LOSS_B] += spec_loss(B_rec, B, n_priority_freq, args.cuda).data[0]
                         curr_loss_dict[CYCLE_LOSS_A] += spec_loss(ABA, A, n_priority_freq, args.cuda).data[0]
                         curr_loss_dict[CYCLE_LOSS_B] += spec_loss(BAB, B, n_priority_freq, args.cuda).data[0]
+                        curr_loss_dict[FM_LOSS_A] += feature_matching_loss(f_dec_ABA, f_enc_A, args.cuda).data[0]
+                        curr_loss_dict[FM_LOSS_B] += feature_matching_loss(f_dec_BAB, f_enc_B, args.cuda).data[0]
+                        curr_loss_dict[FR_LOSS_A] += feature_reconstruction_loss(z_A, z_AB, args.cuda).data[0]
+                        curr_loss_dict[FR_LOSS_B] += feature_reconstruction_loss(z_B, z_BA, args.cuda).data[0]
                         temp_disc_A, temp_gan_A = discriminator_loss(disc_A, disc_BA)
                         temp_disc_B, temp_gan_B = discriminator_loss(disc_B, disc_AB)
                         curr_loss_dict[GAN_LOSS_A] += temp_gan_A.data[0]
@@ -258,18 +281,17 @@ if __name__ == '__main__':
                 B = B.cuda()
 
             # Forward
-            #TODO: encoders and decoders return result AND features, changes needed in code
-            z_A = modules_dict[ENC_A](A)
-            A_rec = modules_dict[DEC_A](z_A)
-            AB = modules_dict[DEC_B](z_A)
-            z_AB = modules_dict[ENC_B](AB)
-            ABA = modules_dict[DEC_A](z_AB)
+            z_A, f_enc_A = modules_dict[ENC_A](A)
+            A_rec, f_dec_A_rec = modules_dict[DEC_A](z_A)
+            AB, f_dec_AB = modules_dict[DEC_B](z_A)
+            z_AB, f_enc_AB = modules_dict[ENC_B](AB)
+            ABA, f_dec_ABA = modules_dict[DEC_A](z_AB)
 
-            z_B = modules_dict[ENC_B](B)
-            B_rec = modules_dict[DEC_B](z_B)
-            BA = modules_dict[DEC_A](z_B)
-            z_BA = modules_dict[ENC_A](BA)
-            BAB = modules_dict[DEC_B](z_BA)
+            z_B, f_enc_B = modules_dict[ENC_B](B)
+            B_rec, f_dec_B_rec = modules_dict[DEC_B](z_B)
+            BA, f_dec_BA = modules_dict[DEC_A](z_B)
+            z_BA, f_enc_BA = modules_dict[ENC_A](BA)
+            BAB, f_dec_BAB = modules_dict[DEC_B](z_BA)
 
             # TODO: use reconstructed spectrograms(A_rec, B_rec, ABA, BAB) while training DISC, GAN loss?
             disc_A = modules_dict[DISC_A](A)
@@ -282,13 +304,16 @@ if __name__ == '__main__':
             # disc_B_rec = modules_dict[DISC_B](B_rec)
             # disc_BAB = modules_dict[DISC_B](BAB)
 
-            # TODO: implement feature matching loss
             loss_dict[RECON_LOSS_A] = spec_loss(A_rec, A, n_priority_freq, args.cuda)
             loss_dict[RECON_LOSS_B] = spec_loss(B_rec, B, n_priority_freq, args.cuda)
             loss_dict[CYCLE_LOSS_A] = spec_loss(ABA, A, n_priority_freq, args.cuda)
             loss_dict[CYCLE_LOSS_B] = spec_loss(BAB, B, n_priority_freq, args.cuda)
             loss_dict[DISC_LOSS_A], loss_dict[GAN_LOSS_A] = discriminator_loss(disc_A, disc_BA)
             loss_dict[DISC_LOSS_B], loss_dict[GAN_LOSS_B] = discriminator_loss(disc_B, disc_AB)
+            loss_dict[FM_LOSS_A] = feature_matching_loss(f_dec_ABA, f_enc_A, args.cuda)
+            loss_dict[FM_LOSS_B] = feature_matching_loss(f_dec_BAB, f_enc_B, args.cuda)
+            loss_dict[FR_LOSS_A] = feature_reconstruction_loss(z_A, z_AB, args.cuda)
+            loss_dict[FR_LOSS_B] = feature_reconstruction_loss(z_B, z_BA, args.cuda)
 
             if current_step % args.disc_step == 0:
                 discriminator_optimizer.zero_grad()
@@ -316,9 +341,13 @@ if __name__ == '__main__':
                 generator_optimizer.zero_grad()
                 # TODO: implement feature matching loss
                 # TODO: implement and test curriculum learning
-                (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] +
-                 loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] +
-                 (loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]) * args.gan_loss_ratio).backward()
+                gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
+                           loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] + \
+                           (loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]) * args.gan_loss_ratio
+                if args.feature_recon_loss:
+                    gen_loss += loss_dict[FR_LOSS_A] + loss_dict[FR_LOSS_B]
+                if args.feature_matching_loss:
+                    gen_loss += loss_dict[FM_LOSS_A] + loss_dict[FM_LOSS_B]
 
                 # gradient clipping
                 for key in modules_dict.keys():
@@ -332,8 +361,8 @@ if __name__ == '__main__':
             if current_step % 10:
                 step_logs = '\t[TRAINING LOG]\n'
                 step_logs += '\tStep: %d\n' % current_step
-                # TODO: implement feature matching loss
                 for loss in [RECON_LOSS_A, RECON_LOSS_B, CYCLE_LOSS_A, CYCLE_LOSS_B,
+                             FM_LOSS_A, FM_LOSS_B, FR_LOSS_A, FR_LOSS_B,
                              GAN_LOSS_A, GAN_LOSS_B, DISC_LOSS_A, DISC_LOSS_B]:
                     step_logs += '\t%s loss: %.5f\n' % (loss, loss_dict[loss])
                 step_logs += '\tTraining time per step with batch size %d: %.2f\n' % (args.batch_size, time_per_step)
