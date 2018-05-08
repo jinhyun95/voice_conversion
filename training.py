@@ -254,7 +254,9 @@ if __name__ == '__main__':
                     step_logs = '[TEST LOG - %s]\n' % phase_str
                     step_logs += 'Step: %d\n' % current_step
 
-                    for loss_key in curr_loss_dict.keys():
+                    for loss_key in [RECON_LOSS_A, RECON_LOSS_B, CYCLE_LOSS_A, CYCLE_LOSS_B,
+                                     FM_LOSS_A, FM_LOSS_B, FR_LOSS_A, FR_LOSS_B,
+                                     GAN_LOSS_A, GAN_LOSS_B, DISC_LOSS_A, DISC_LOSS_B]:
                         step_logs += '%s loss: %.5f\n' % (loss_key, curr_loss_dict[loss_key] / eval_dataloader_length)
 
                     step_logs += '--------------------------------------'
