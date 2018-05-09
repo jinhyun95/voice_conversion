@@ -281,7 +281,7 @@ if __name__ == '__main__':
 
             # get next batch from dataloader
             A = Variable(next(iter(wave_loader_A)))
-            B = Variable(next(iter(wave_loader_A)))
+            B = Variable(next(iter(wave_loader_B)))
             if args.cuda:
                 A = A.cuda()
                 B = B.cuda()
