@@ -267,13 +267,13 @@ if __name__ == '__main__':
                     sys.stdout.flush()
 
                 # save model
-                dict_to_save = {}
-                for key in modules_dict.keys():
-                    dict_to_save['%s_state_dict' % key] = modules_dict[key].state_dict()
-                    dict_to_save['generator_optimizer'] = generator_optimizer.state_dict()
-                    dict_to_save['discriminator_optimizer'] = discriminator_optimizer.state_dict()
-                    torch.save(dict_to_save, os.path.join(model_base_path, 'checkpoint_%d.pth.tar' % current_step))
-                    print("save model at step %d ..." % current_step)
+                # dict_to_save = {}
+                # for key in modules_dict.keys():
+                #     dict_to_save['%s_state_dict' % key] = modules_dict[key].state_dict()
+                #     dict_to_save['generator_optimizer'] = generator_optimizer.state_dict()
+                #     dict_to_save['discriminator_optimizer'] = discriminator_optimizer.state_dict()
+                #     torch.save(dict_to_save, os.path.join(model_base_path, 'checkpoint_%d.pth.tar' % current_step))
+                #     print("save model at step %d ..." % current_step)
 
             # TRAINING
             for key in modules_dict.keys():
