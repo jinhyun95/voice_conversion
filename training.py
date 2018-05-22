@@ -32,6 +32,9 @@ parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--disc_step', type=int, default=3)
 parser.add_argument('--gan_loss_ratio', type=float, default=1.)
 
+parser.add_argument('--curriculum_step', type=int, help='curriculum learning steps', default=1000)
+parser.add_argument('--curriculum_ratio', type=float, help='curriculum learning ratio', default=0.01)
+
 # loss arguments
 parser.add_argument('--feature_recon_loss', type=str2bool, help='bottleneck feature reconstruction loss', default=True)
 parser.add_argument('--feature_matching_loss', type=str2bool, help='feature matching loss', default=False)
@@ -337,9 +340,15 @@ if __name__ == '__main__':
             else:
                 generator_optimizer.zero_grad()
                 # TODO: implement and test curriculum learning
-                gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
-                           loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] + \
-                           (loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]) * args.gan_loss_ratio
+                if current_step < args.curriculum_step:
+                    (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
+                    loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]) * args.curriculum_ratio + \
+                    loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
+
+                else:
+                    gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
+                               loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] + \
+                               loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
                 if args.feature_recon_loss:
                     gen_loss += loss_dict[FR_LOSS_A] + loss_dict[FR_LOSS_B]
                 if args.feature_matching_loss:
