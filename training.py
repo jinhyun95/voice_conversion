@@ -341,9 +341,9 @@ if __name__ == '__main__':
                 generator_optimizer.zero_grad()
                 # TODO: implement and test curriculum learning
                 if current_step < args.curriculum_step:
-                    (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
-                    loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]) * args.curriculum_ratio + \
-                    loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
+                    gen_loss = (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
+                                loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]) * args.curriculum_ratio + \
+                               loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
 
                 else:
                     gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
