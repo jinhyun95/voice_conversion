@@ -302,17 +302,29 @@ if __name__ == '__main__':
                     modules_dict[submodule] = modules_dict[submodule].eval()
 
             # Forward
+            print(A.size())
             z_A, f_enc_A = modules_dict[ENC_A](A)
+            print(z_A.size())
             A_rec, f_dec_A_rec = modules_dict[DEC_A](z_A)
+            print(A_rec.size())
             AB, f_dec_AB = modules_dict[DEC_B](z_A)
+            print(AB.size())
             z_AB, f_enc_AB = modules_dict[ENC_B](AB)
+            print(z_AB.size())
             ABA, f_dec_ABA = modules_dict[DEC_A](z_AB)
-
+            print(ABA.size())
+            print(B.size())
             z_B, f_enc_B = modules_dict[ENC_B](B)
+            print(z_B.size())
             B_rec, f_dec_B_rec = modules_dict[DEC_B](z_B)
+            print(B_rec.size())
             BA, f_dec_BA = modules_dict[DEC_A](z_B)
+            print(BA.size())
             z_BA, f_enc_BA = modules_dict[ENC_A](BA)
+            print(z_BA.size())
             BAB, f_dec_BAB = modules_dict[DEC_B](z_BA)
+            print(BAB.size())
+            sys.exit()
 
             # TODO: use reconstructed spectrograms(A_rec, B_rec, ABA, BAB) while training DISC, GAN loss?
             disc_A = modules_dict[DISC_A](A)
