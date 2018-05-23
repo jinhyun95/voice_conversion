@@ -48,9 +48,9 @@ def audio_writer(dir_path, spec_output, name_head, use_cuda=True):
             break
 
         if use_cuda:
-            nparr = a_spec_output.transpose(1, 2).cpu().data.numpy()
+            nparr = a_spec_output.transpose(0, 1).cpu().data.numpy()
         else:
-            nparr = a_spec_output.transpose(1, 2).data.numpy()
+            nparr = a_spec_output.transpose(0, 1).data.numpy()
 
         wav = inv_spectrogram(nparr)
         wav = wav[:find_endpoint(wav)]

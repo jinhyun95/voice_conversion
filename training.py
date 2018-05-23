@@ -54,13 +54,11 @@ def discriminator_loss(d_real, d_fake):
     return d_loss, g_loss
 
 
-def spec_loss(s_synth, s_target, priority_freq, cuda=True):
-    min_length = min(s_synth.size()[1], s_target.size()[1])
-    l1loss = torch.abs(s_synth[:, :min_length, :] - s_target[:, :min_length, :])
-    l1loss_with_priority = 0.5 * torch.mean(l1loss) + 0.5 * torch.mean(l1loss[:, :priority_freq, :])
+def spec_loss(s_synth, s_target, cuda=True):
+    l1loss = torch.mean(torch.abs(s_synth - s_target))
     if cuda:
-        l1loss_with_priority = l1loss_with_priority.cuda()
-    return l1loss_with_priority
+        l1loss = l1loss.cuda()
+    return l1loss
 
 
 def feature_reconstruction_loss(f_synth, f_source, cuda=True):
@@ -148,10 +146,6 @@ if __name__ == '__main__':
     generator_scheduler = lr_scheduler.StepLR(generator_optimizer, step_size=args.decay_step, gamma=args.decay_rate)
     discriminator_scheduler = lr_scheduler.StepLR(discriminator_optimizer, step_size=args.decay_step, gamma=args.decay_rate)
 
-    # Loss for frequency of human register
-    # TODO: ablation test needed
-    n_priority_freq = int(3000 / (args.sr * 0.5) * args.num_freq)
-
     for epoch in range(args.epochs):
         # create shuffled dataloaders
         wave_loader_A = DataLoader(wave_A_tr, batch_size=args.batch_size, shuffle=True,
@@ -225,10 +219,10 @@ if __name__ == '__main__':
                         # disc_BAB = modules_dict[DISC_B](BAB)
 
                         # calculate loss
-                        curr_loss_dict[RECON_LOSS_A] += spec_loss(A_rec, A, n_priority_freq, args.cuda).data[0]
-                        curr_loss_dict[RECON_LOSS_B] += spec_loss(B_rec, B, n_priority_freq, args.cuda).data[0]
-                        curr_loss_dict[CYCLE_LOSS_A] += spec_loss(ABA, A, n_priority_freq, args.cuda).data[0]
-                        curr_loss_dict[CYCLE_LOSS_B] += spec_loss(BAB, B, n_priority_freq, args.cuda).data[0]
+                        curr_loss_dict[RECON_LOSS_A] += spec_loss(A_rec, A, args.cuda).data[0]
+                        curr_loss_dict[RECON_LOSS_B] += spec_loss(B_rec, B, args.cuda).data[0]
+                        curr_loss_dict[CYCLE_LOSS_A] += spec_loss(ABA, A, args.cuda).data[0]
+                        curr_loss_dict[CYCLE_LOSS_B] += spec_loss(BAB, B, args.cuda).data[0]
                         curr_loss_dict[FM_LOSS_A] += feature_matching_loss(f_dec_ABA, f_enc_A, args.cuda).data[0]
                         curr_loss_dict[FM_LOSS_B] += feature_matching_loss(f_dec_BAB, f_enc_B, args.cuda).data[0]
                         curr_loss_dict[FR_LOSS_A] += feature_reconstruction_loss(z_A, z_AB, args.cuda).data[0]
@@ -290,41 +284,29 @@ if __name__ == '__main__':
             A = A.unsqueeze(1)
             B = B.unsqueeze(1)
 
-            if current_step % args.disc_step == 0:
-                for submodule in [ENC_A, ENC_B, DEC_A, DEC_B]:
-                    modules_dict[submodule] = modules_dict[submodule].eval()
-                for submodule in [DISC_A, DISC_B]:
-                    modules_dict[submodule] = modules_dict[submodule].train()
-            else:
-                for submodule in [ENC_A, ENC_B, DEC_A, DEC_B]:
-                    modules_dict[submodule] = modules_dict[submodule].train()
-                for submodule in [DISC_A, DISC_B]:
-                    modules_dict[submodule] = modules_dict[submodule].eval()
+            # if current_step % args.disc_step == 0:
+            #     for submodule in [ENC_A, ENC_B, DEC_A, DEC_B]:
+            #         modules_dict[submodule] = modules_dict[submodule].eval()
+            #     for submodule in [DISC_A, DISC_B]:
+            #         modules_dict[submodule] = modules_dict[submodule].train()
+            # else:
+            #     for submodule in [ENC_A, ENC_B, DEC_A, DEC_B]:
+            #         modules_dict[submodule] = modules_dict[submodule].train()
+            #     for submodule in [DISC_A, DISC_B]:
+            #         modules_dict[submodule] = modules_dict[submodule].eval()
 
             # Forward
-            print(A.size())
             z_A, f_enc_A = modules_dict[ENC_A](A)
-            print(z_A.size())
             A_rec, f_dec_A_rec = modules_dict[DEC_A](z_A)
-            print(A_rec.size())
             AB, f_dec_AB = modules_dict[DEC_B](z_A)
-            print(AB.size())
             z_AB, f_enc_AB = modules_dict[ENC_B](AB)
-            print(z_AB.size())
             ABA, f_dec_ABA = modules_dict[DEC_A](z_AB)
-            print(ABA.size())
-            print(B.size())
+
             z_B, f_enc_B = modules_dict[ENC_B](B)
-            print(z_B.size())
             B_rec, f_dec_B_rec = modules_dict[DEC_B](z_B)
-            print(B_rec.size())
             BA, f_dec_BA = modules_dict[DEC_A](z_B)
-            print(BA.size())
             z_BA, f_enc_BA = modules_dict[ENC_A](BA)
-            print(z_BA.size())
             BAB, f_dec_BAB = modules_dict[DEC_B](z_BA)
-            print(BAB.size())
-            sys.exit()
 
             # TODO: use reconstructed spectrograms(A_rec, B_rec, ABA, BAB) while training DISC, GAN loss?
             disc_A = modules_dict[DISC_A](A)
@@ -337,10 +319,10 @@ if __name__ == '__main__':
             # disc_B_rec = modules_dict[DISC_B](B_rec)
             # disc_BAB = modules_dict[DISC_B](BAB)
 
-            loss_dict[RECON_LOSS_A] = spec_loss(A_rec, A, n_priority_freq, args.cuda)
-            loss_dict[RECON_LOSS_B] = spec_loss(B_rec, B, n_priority_freq, args.cuda)
-            loss_dict[CYCLE_LOSS_A] = spec_loss(ABA, A, n_priority_freq, args.cuda)
-            loss_dict[CYCLE_LOSS_B] = spec_loss(BAB, B, n_priority_freq, args.cuda)
+            loss_dict[RECON_LOSS_A] = spec_loss(A_rec, A, args.cuda)
+            loss_dict[RECON_LOSS_B] = spec_loss(B_rec, B, args.cuda)
+            loss_dict[CYCLE_LOSS_A] = spec_loss(ABA, A, args.cuda)
+            loss_dict[CYCLE_LOSS_B] = spec_loss(BAB, B, args.cuda)
             loss_dict[DISC_LOSS_A], loss_dict[GAN_LOSS_A] = discriminator_loss(disc_A, disc_BA)
             loss_dict[DISC_LOSS_B], loss_dict[GAN_LOSS_B] = discriminator_loss(disc_B, disc_AB)
             loss_dict[FM_LOSS_A] = feature_matching_loss(f_dec_ABA, f_enc_A, args.cuda)
