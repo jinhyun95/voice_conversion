@@ -27,6 +27,7 @@ parser.add_argument('--decay_rate', type=float, help='learning rate decaying rat
 parser.add_argument('--decay_step', type=int, help='learning rate decaying step', default=1000)
 parser.add_argument('--epochs', type=int, help='training epochs', default=1)
 parser.add_argument('--batch_size', type=int, default=1)
+parser.add_argument('--batch_num', type=int, default=1)
 
 # training scheme
 parser.add_argument('--disc_step', type=int, default=3)
@@ -148,8 +149,8 @@ if __name__ == '__main__':
 
     discriminator_optimizer.zero_grad()
     generator_optimizer.zero_grad()
-    discriminator_update_flag = False
-    generator_update_flag = False
+    discriminator_update_flag = 0
+    generator_update_flag = 0
 
     for epoch in range(args.epochs):
         # create shuffled dataloaders
@@ -163,7 +164,7 @@ if __name__ == '__main__':
             current_step = step + args.restore_step + epoch * dataloader_length + 1
 
             # EVALUATION, parameters and result saving
-            if current_step % args.save_step == 0:
+            if current_step % (args.save_step * args.batch_num) == 0:
                 for key in modules_dict.keys():
                     modules_dict[key] = modules_dict[key].eval()
 
@@ -335,20 +336,20 @@ if __name__ == '__main__':
             loss_dict[FR_LOSS_A] = feature_reconstruction_loss(z_A, z_AB, args.cuda)
             loss_dict[FR_LOSS_B] = feature_reconstruction_loss(z_B, z_BA, args.cuda)
 
-            if current_step % (args.disc_step * 2) == 0 or discriminator_update_flag:
-                (loss_dict[DISC_LOSS_A] + loss_dict[DISC_LOSS_B]).backward()
+            if current_step % (args.disc_step * args.batch_num) == 0 or discriminator_update_flag != 0:
+                ((loss_dict[DISC_LOSS_A] + loss_dict[DISC_LOSS_B]) / args.batch_num).backward()
 
-                if discriminator_update_flag:
+                discriminator_update_flag += 1
+                if discriminator_update_flag == args.batch_num:
                     for key in modules_dict.keys():
                         nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
                     discriminator_optimizer.step()
                     discriminator_scheduler.step()
                     discriminator_optimizer.zero_grad()
-                discriminator_update_flag = not discriminator_update_flag
+                    discriminator_update_flag = 0
 
             else:
-                # TODO: implement and test curriculum learning
-                if current_step < args.curriculum_step:
+                if current_step < (args.curriculum_step * args.batch_num):
                     gen_loss = (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
                                 loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]) * args.curriculum_ratio + \
                                loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
@@ -362,17 +363,19 @@ if __name__ == '__main__':
                 if args.feature_matching_loss:
                     gen_loss += loss_dict[FM_LOSS_A] + loss_dict[FM_LOSS_B]
 
-                if generator_update_flag:
+                generator_update_flag += 1
+                (gen_loss / args.batch_num).backward()
+                if generator_update_flag == args.batch_num:
                     for key in modules_dict.keys():
                         nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
                     generator_optimizer.step()
                     generator_scheduler.step()
                     generator_optimizer.zero_grad()
-                generator_update_flag = not generator_update_flag
+                    generator_update_flag = 0
 
             time_per_step = time.time() - start_time
 
-            if current_step % 10 == 0:
+            if current_step % (10 * args.batch_num) == 0:
                 step_logs = '\t[TRAINING LOG]\n'
                 step_logs += '\tStep: %d\n' % current_step
                 for loss in [RECON_LOSS_A, RECON_LOSS_B, CYCLE_LOSS_A, CYCLE_LOSS_B,
