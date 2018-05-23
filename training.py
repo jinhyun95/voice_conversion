@@ -342,8 +342,6 @@ if __name__ == '__main__':
                 discriminator_scheduler.step()
 
             else:
-                generator_optimizer.zero_grad()
-                # TODO: implement and test curriculum learning
                 if current_step < args.curriculum_step:
                     gen_loss = (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
                                 loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]) * args.curriculum_ratio + \
@@ -358,6 +356,9 @@ if __name__ == '__main__':
                 if args.feature_matching_loss:
                     gen_loss += loss_dict[FM_LOSS_A] + loss_dict[FM_LOSS_B]
 
+                generator_optimizer.zero_grad()
+                gen_loss.backward()
+                
                 # gradient clipping
                 for key in modules_dict.keys():
                     nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
