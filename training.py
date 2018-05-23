@@ -30,7 +30,6 @@ parser.add_argument('--batch_size', type=int, default=1)
 
 # training scheme
 parser.add_argument('--disc_step', type=int, default=3)
-parser.add_argument('--gan_loss_ratio', type=float, default=1.)
 
 parser.add_argument('--curriculum_step', type=int, help='curriculum learning steps', default=1000)
 parser.add_argument('--curriculum_ratio', type=float, help='curriculum learning ratio', default=0.01)
@@ -290,6 +289,17 @@ if __name__ == '__main__':
                 B = B.cuda()
             A = A.unsqueeze(1)
             B = B.unsqueeze(1)
+
+            if current_step % args.disc_step == 0:
+                for submodule in [ENC_A, ENC_B, DEC_A, DEC_B]:
+                    modules_dict[submodule] = modules_dict[submodule].eval()
+                for submodule in [DISC_A, DISC_B]:
+                    modules_dict[submodule] = modules_dict[submodule].train()
+            else:
+                for submodule in [ENC_A, ENC_B, DEC_A, DEC_B]:
+                    modules_dict[submodule] = modules_dict[submodule].train()
+                for submodule in [DISC_A, DISC_B]:
+                    modules_dict[submodule] = modules_dict[submodule].eval()
 
             # Forward
             z_A, f_enc_A = modules_dict[ENC_A](A)

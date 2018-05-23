@@ -43,7 +43,7 @@ def collate_fn_audio(batch):
 
 
 def audio_writer(dir_path, spec_output, name_head, use_cuda=True):
-    for file_idx, a_spec_output in enumerate(spec_output):
+    for file_idx, a_spec_output in enumerate(spec_output.squeeze(1)):
         if file_idx > 20:
             break
 
