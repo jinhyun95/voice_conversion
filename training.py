@@ -335,14 +335,12 @@ if __name__ == '__main__':
             loss_dict[FR_LOSS_A] = feature_reconstruction_loss(z_A, z_AB, args.cuda)
             loss_dict[FR_LOSS_B] = feature_reconstruction_loss(z_B, z_BA, args.cuda)
 
-            if current_step % args.disc_step * 2 == 0 or discriminator_update_flag:
+            if current_step % (args.disc_step * 2) == 0 or discriminator_update_flag:
                 (loss_dict[DISC_LOSS_A] + loss_dict[DISC_LOSS_B]).backward()
 
-                # gradient clipping
-                for key in modules_dict.keys():
-                    nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
-
                 if discriminator_update_flag:
+                    for key in modules_dict.keys():
+                        nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
                     discriminator_optimizer.step()
                     discriminator_scheduler.step()
                     discriminator_optimizer.zero_grad()
@@ -364,11 +362,9 @@ if __name__ == '__main__':
                 if args.feature_matching_loss:
                     gen_loss += loss_dict[FM_LOSS_A] + loss_dict[FM_LOSS_B]
 
-                # gradient clipping
-                for key in modules_dict.keys():
-                    nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
-
                 if generator_update_flag:
+                    for key in modules_dict.keys():
+                        nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
                     generator_optimizer.step()
                     generator_scheduler.step()
                     generator_optimizer.zero_grad()
