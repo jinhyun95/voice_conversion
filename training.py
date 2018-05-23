@@ -146,6 +146,11 @@ if __name__ == '__main__':
     generator_scheduler = lr_scheduler.StepLR(generator_optimizer, step_size=args.decay_step, gamma=args.decay_rate)
     discriminator_scheduler = lr_scheduler.StepLR(discriminator_optimizer, step_size=args.decay_step, gamma=args.decay_rate)
 
+    discriminator_optimizer.zero_grad()
+    generator_optimizer.zero_grad()
+    discriminator_update_flag = False
+    generator_update_flag = False
+
     for epoch in range(args.epochs):
         # create shuffled dataloaders
         wave_loader_A = DataLoader(wave_A_tr, batch_size=args.batch_size, shuffle=True,
@@ -330,19 +335,20 @@ if __name__ == '__main__':
             loss_dict[FR_LOSS_A] = feature_reconstruction_loss(z_A, z_AB, args.cuda)
             loss_dict[FR_LOSS_B] = feature_reconstruction_loss(z_B, z_BA, args.cuda)
 
-            if current_step % args.disc_step == 0:
-                discriminator_optimizer.zero_grad()
+            if current_step % args.disc_step * 2 == 0 or discriminator_update_flag:
                 (loss_dict[DISC_LOSS_A] + loss_dict[DISC_LOSS_B]).backward()
 
                 # gradient clipping
                 for key in modules_dict.keys():
                     nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
 
-                discriminator_optimizer.step()
-                discriminator_scheduler.step()
+                if discriminator_update_flag:
+                    discriminator_optimizer.step()
+                    discriminator_scheduler.step()
+                    discriminator_optimizer.zero_grad()
+                discriminator_update_flag = not discriminator_update_flag
 
             else:
-                generator_optimizer.zero_grad()
                 # TODO: implement and test curriculum learning
                 if current_step < args.curriculum_step:
                     gen_loss = (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
@@ -362,8 +368,11 @@ if __name__ == '__main__':
                 for key in modules_dict.keys():
                     nn.utils.clip_grad_norm(modules_dict[key].parameters(), 1.)
 
-                generator_optimizer.step()
-                generator_scheduler.step()
+                if generator_update_flag:
+                    generator_optimizer.step()
+                    generator_scheduler.step()
+                    generator_optimizer.zero_grad()
+                generator_update_flag = not generator_update_flag
 
             time_per_step = time.time() - start_time
 
