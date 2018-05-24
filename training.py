@@ -342,19 +342,20 @@ if __name__ == '__main__':
                 discriminator_scheduler.step()
 
             else:
-                if current_step < args.curriculum_step:
-                    gen_loss = (loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
-                                loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]) * args.curriculum_ratio + \
-                               loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
+                gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
+                           loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B]
 
-                else:
-                    gen_loss = loss_dict[RECON_LOSS_A] + loss_dict[RECON_LOSS_B] + \
-                               loss_dict[CYCLE_LOSS_A] + loss_dict[CYCLE_LOSS_B] + \
-                               loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
                 if args.feature_recon_loss:
                     gen_loss += loss_dict[FR_LOSS_A] + loss_dict[FR_LOSS_B]
                 if args.feature_matching_loss:
                     gen_loss += loss_dict[FM_LOSS_A] + loss_dict[FM_LOSS_B]
+
+                if current_step < args.curriculum_step:
+                    gen_loss = gen_loss * args.curriculum_ratio + \
+                               loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
+
+                else:
+                    gen_loss += loss_dict[GAN_LOSS_A] + loss_dict[GAN_LOSS_B]
 
                 generator_optimizer.zero_grad()
                 gen_loss.backward()
