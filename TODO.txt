@@ -1,4 +1,0 @@
-since we no longer need validation dataset, make larger training and test dataset
-preferably with same number of data entry for A_test and B_test
-
-order loss in logs
